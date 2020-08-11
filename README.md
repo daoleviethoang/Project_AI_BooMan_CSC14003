@@ -1,6 +1,5 @@
 # Project_AI_BooMan_CSC14003
 1. Description
-
 You are given a file which describe Pac-man World. Propose or apply learned algorithms to help Pac-Man to find foods without dying by monsters. Pacman or monsters only moves in 4 direction: left, right, bottom, up and cannot move over or through the wall. The game has four levels: 
 - Level 1: Pac-man know the food’s position in map and monsters do not appear in map. There is only one food in the map. 
 - Level 2: monsters stand in the place ever (never move around). If Pac-man pass through the monster or vice versa, game is over. There is still one food in the map and Pac-man know its position. 

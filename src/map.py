@@ -105,14 +105,14 @@ class map_graphic():
     return a pair (width, height)
     """
     @staticmethod
-    def total_screen_size(grid_2d, start_y=0) -> tuple:
+    def total_screen_size(grid_2d, start_y=0, block_size = BLOCK_SIZE) -> tuple:
         ## Để ý trường hợp grid_2d is None
         n_rows = len(grid_2d)
         n_cols = len(grid_2d[0])
-        height = BLOCK_SIZE * (n_rows + start_y)
-        width = BLOCK_SIZE * (n_cols)
+        height = block_size * (n_rows + start_y)
+        width = block_size * (n_cols)
         return width, height
-        
+    
     def get_total_screen_size(self)->tuple:
         return map_graphic.total_screen_size(self.grid_2d, self.start_y)
 
@@ -345,6 +345,26 @@ class pacman_graphic(pygame.sprite.Sprite):
         if cur_y >= 0 and cur_y <= max_height - BLOCK_SIZE * 3:
             self.rect.y = cur_y
 
+    def random_moves(self, map_obj: map_graphic)->Direction:
+        if self.is_moving():
+            return None
+        x, y = self.rect.topleft
+        i, j = map_obj.to_cell_coord(x, y)
+        candidates = []
+        if j > 0 and map_obj.grid_2d[i][j - 1] != WALL:
+            candidates.append(Direction.LEFT.value)
+        if j < len(map_obj.grid_2d[0]) - 1 and map_obj.grid_2d[i][j + 1] != WALL:
+            candidates.append(Direction.RIGHT.value)
+        if i > 0 and map_obj.grid_2d[i - 1][j] != WALL:
+            candidates.append(Direction.UP.value)
+        if i < len(map_obj.grid_2d[0]) - 1 and map_obj.grid_2d[i + 1][j] != WALL:
+            candidates.append(Direction.DOWN.value)
+        if len(candidates) == 0:
+            return None
+
+        move = random.choice(candidates)
+        return move
+
 import random
 class ghost_graphic(pygame.sprite.Sprite):
     def __init__(self, x, y, width=BLOCK_SIZE, height=BLOCK_SIZE, img_path="res/slime.png", color_key=ROAD_COLOR):
@@ -400,7 +420,7 @@ class ghost_graphic(pygame.sprite.Sprite):
                 if self.prev_i != -1 and self.prev_j != -1:
                     map_obj.grid_2d[self.prev_i][self.prev_j] = ROAD
                 self.prev_i, self.prev_j = i, j
-                print("GHOST POS: ", i, j)
+                # print("GHOST POS: ", i, j)
 
             self.moving_steps = 0
             self.moving_direction = None
@@ -459,7 +479,7 @@ class ghost_graphic(pygame.sprite.Sprite):
             return None
 
         move = random.choice(candidates)
-        print("GHOST move to ", move)
+        # print("GHOST move to ", move)
         return move
 
 
@@ -505,6 +525,8 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
     # Pacman ---------------------------
     if pacman_moves is not None and len(pacman_moves) > 0:
         if not map_obj.pacman_block.is_moving():
+            ### XÓA DÒNG NÀY KHI GHÉP THUẬT TOÁN LEVEL 1
+            pacman_moves.append(map_obj.pacman_block.random_moves(map_obj))
             direction = pacman_moves.pop(0)
             map_obj.pacman_block.move_to(direction)
         
@@ -521,10 +543,10 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
             map_obj.grid_2d[food_i][food_j] = WALL
         
 
-        hit_ghost_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.ghost_blocks,True)
-        
-        if len(hit_ghost_blocks) > 0:
-            map_obj.game_over = True
+    hit_ghost_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.ghost_blocks,True)
+    
+    if len(hit_ghost_blocks) > 0:
+        map_obj.game_over = True
 
     # Ghosts ----------------------------
     for ghost in map_obj.ghost_objs:
@@ -537,6 +559,10 @@ def run_game1(grid_2d, pacman_i, pacman_j):
     
     # Initialize all imported pygame modules
     pygame.init()
+
+    # get the system screen size
+    display_info  = pygame.display.Info()
+    max_width, max_heigth = display_info.current_w, display_info.current_h
 
     # Set the screen size
     print(map_graphic.total_screen_size(grid_2d))
@@ -556,41 +582,51 @@ def run_game1(grid_2d, pacman_i, pacman_j):
     # screen.
     
     done = False
+
+    # Các hướng đi
     u = Direction.UP.value
     d = Direction.DOWN.value
     l = Direction.LEFT.value
     r = Direction.RIGHT.value
-    pacman_moves = [u, u, r, r, r, r, r, r, r, r, r, r, r, r, r, r, d, d, d, d, d,
-                    r, d, d, d, d, d]
+
+    #### PATH CỦA PACMAN SẼ ĐƯỢC THAY VÀO ĐÂY
+    #### TẠM THỜI ĐỂ RANDOM
+    pacman_moves = [l]
+
     # Game Loop -----------
     while not done:
 
         for event in pygame.event.get(): # User did something
             if event.type == pygame.QUIT: # If user clicked close
-                print(map_obj.grid_2d)
                 done = True
+        if map_obj.game_over:
+            break
         
         level1_2(map_obj, pacman_moves)
         map_obj.draw_map()
 
+        # Tăng/giảm frame speed ở đây
         clock.tick(60)
 
+    print(map_obj.grid_2d)
+    print("SCORE: ", map_obj.pacman_block.score)
+
+    if map_obj.game_over:
+        pygame.time.wait(5000)
+    
     pygame.quit()
 
+from readfile import *
 def main():
 
-    grid_2d = [
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-        [1, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-        [1, 2, 1, 0, 1, 0, 2, 1, 1, 1, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1], 
-        [1, 2, 1, 2, 1, GHOST, 2, 1, 2, 2, 2, 2, 1, 0, 0, 1, 0, 1, 0, 1], 
-        [1, 0, 1, 1, 1, 0, 2, 1, 2, 0, 1, 1, 1, 0, 0, 1, 0, 1, 0, 1], 
-        [1, 0, 0, 0, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1], 
-        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-    ]
-    print("MAP SIZE: ", len(grid_2d))
-    run_game1(grid_2d, 3, 3)
+    size, grid_2d, start = readfile('input/4/input1.txt')
+    size = np.array(size)
+    grid_2d = np.array(grid_2d)
+    start = np.array(start)
 
+    grid_2d, size, start = check_fence(grid_2d, size, start)
+    print("MAP SIZE: ", len(grid_2d))
+    run_game1(grid_2d, pacman_i=start[0], pacman_j=start[1])
 
 if __name__ == '__main__':
     ##### VUI LÒNG CHUYỂN THƯ MỤC LÀM VIỆC Project_AI_BooMan_CSC14003 ĐỂ CÓ THỂ ĐỌC FILE ẢNH ĐƯỢC

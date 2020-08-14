@@ -4,7 +4,7 @@ import time
 import random
 import numpy as np
 
-WIDTH, HEIGHT = 960,640
+WIDTH, HEIGHT = 240,160
 FPS = 60
 TOP_BOTTOM_BUFFER = 50
 
@@ -16,7 +16,7 @@ GREY = (107,107,107)
 START_TEXT_SIZE = 16
 START_FONT = 'arial black'
 
-PLAY_START_POS = vec(20,20)
+PLAY_START_POS = vec(0,0)
 
 pygame.init()
 
@@ -29,7 +29,9 @@ class Pacman:
         self.pac_location = pos
         self.pix_pos = self.get_pix_pos()
         self.step_move = vec(1,0)
-        self.move_level_1 = self.move_a_star()
+        self.list_data = self.heuristic_allmap()
+        self.food = vec(4,11)
+        self.move_level_1, self.explored, self.timeEscape = self.Graph_Search_A_Star()
     def move(self, choose_move):
         if choose_move == 1: #left
             self.pix_pos += vec(-20,0)
@@ -61,12 +63,16 @@ class Pacman:
         elif S_x == 0 and S_y == 1:
             return 4
     def level_1(self):
+        X = 0
+        self.move_level_1.pop(0)
+        if not self.move_level_1:
+            return X
         for i in self.move_level_1:
-            S_x = i[0] - self.pac_location.x
-            S_y = i[1] - self.pac_location.y
-            self.move_level_1 = np.delete(self.move_level_1,0,0)
-            return self.level_return(int(S_x), int(S_y))
-        return 0
+            S_x = int(i//(HEIGHT/20)) - self.pac_location.x
+            S_y = int(i%(HEIGHT/20)) - self.pac_location.y
+            X = self.level_return(int(S_x), int(S_y))
+            break
+        return X
     def pacman_play(self, level):
         if level == 1:
             self.vision = self.road
@@ -79,14 +85,14 @@ class Pacman:
             pass
     def heuristic(self, current, food):
         #mahatan
-        return abs(current.x - food.x) + abs(current.y - food.y)
+        return abs(current%int(HEIGHT/20) - food%int(HEIGHT/20)) + abs(current//int(HEIGHT/20) - food//int(HEIGHT/20))
     def isValid(self, row, col):
         if (row >= 0) and (row < HEIGHT/20) and (col >= 0) and (col < WIDTH/20):
             return True
         else:
             return False
     def isUnblock(self, vision, row, col):
-        if vision[row][col] == 0:
+        if vision[row][col] == 0 or vision[row][col] == 2:
             return True
         else:
             return False
@@ -95,6 +101,61 @@ class Pacman:
             return True
         else:
             return False
+    def heuristic_allmap(self):
+        allmap = []
+        for col in range(int(WIDTH/20)):
+            for row in range(int(HEIGHT/20)):
+                temp = []
+                if self.isUnblock(self.road, row, col) == True and self.isValid(row, col) == True:
+                        up = [row - 1,col]
+                        down = [row + 1, col]
+                        left = [row, col - 1]
+                        right = [row, col + 1]
+                        if self.isValid(up[0], up[1]) == True and self.isUnblock(self.road, up[0], up[1]) == True:
+                            temp.append(int(HEIGHT/20)*up[1]+up[0])
+                        if self.isValid(down[0], down[1]) == True and self.isUnblock(self.road, down[0], down[1]) == True:
+                            temp.append(int(HEIGHT/20)*down[1]+down[0])
+                        if self.isValid(left[0], left[1]) == True and self.isUnblock(self.road, left[0], left[1]) == True:
+                            temp.append(int(HEIGHT/20)*left[1]+left[0])
+                        if self.isValid(right[0], right[1]) == True and self.isUnblock(self.road, right[0], right[1]) == True:
+                            temp.append(int(HEIGHT/20)*right[1]+right[0])
+                        allmap.append(temp)
+                else:
+                    allmap.append([])
+        return allmap
+    def f_heuristic(self, node):
+        return node[1]
+    def next_node(self, current_node):
+        return current_node[0][-1]
+    def Graph_Search_A_Star(self):
+        queue = []
+        goal = int(self.food.x - 1) + int((HEIGHT/20)*int(self.food.y-1))
+        queue.append(([0],self.heuristic(0,goal),0))
+        explored = []
+        visited = []
+        timeEscape = 0
+        for i in range(0,len(self.list_data)):
+            visited.append(False)
+        visited[0] = True
+        while len(queue) > 0:
+            queue = sorted(queue,key=self.next_node)
+            queue = sorted(queue,key=self.f_heuristic)
+            catch = queue.pop(0)
+            g = catch[2]
+            explored.append(catch[0][-1])
+            timeEscape += 1
+            visited[catch[0][-1]] = True
+            if catch[0][-1] == goal:
+                return catch[0], explored, timeEscape
+            else:
+                for x in self.list_data[catch[0][-1]]:
+                    catch1 = catch[0].copy()
+                    catch1.append(x)
+                    if visited[x] == False:
+                        visited[x] = True
+                        queue.append((catch1,self.heuristic(x,goal) + g + 1,g + 1))
+        return [], explored, timeEscape
+''' #greedy di bui
     def move_a_star(self):
         food = vec(30,21) #vector do an
         current = self.pac_location
@@ -105,6 +166,7 @@ class Pacman:
             current_old = current
             matrix_temp = []
             index_max_heu = []
+            flag = 0
             for i in [(-1,0),(1,0),(0,-1),(0,1)]:
                 current = current + i
                 if self.isDestination(int(current.x), int(current.y), food) == True:
@@ -115,15 +177,16 @@ class Pacman:
                     p_vision_temp[int(current.x)][int(current.y)] = h_new
                     matrix_temp.append(h_new)
                     index_max_heu.append([int(current.x), int(current.y)])
-
+                    flag = flag + 1
                 current = current_old
             current = vec(index_max_heu[np.argmin(matrix_temp)][0],index_max_heu[np.argmin(matrix_temp)][1])
-            if ([int(current.x),int(current.y)] in pacman_move) == True:
+            if ([int(current.x),int(current.y)] in pacman_move) == True and flag == 1:
                 p_vision[int(current_old.x)][int(current_old.y)] = 1
             pacman_move.append([int(current.x),int(current.y)])
     def A_Star_Seacrh(self, p_vision):
         while True:
             pass
+'''
 class App:
     def __init__(self):
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -144,7 +207,8 @@ class App:
             self.X = self.pacman.pacman_play(1)
             #X = random.randint(1,4)
             if self.X == 0:
-                time.sleep(10)
+                print('End Game')
+                return None
             if self.state == 'start':
                 self.start_events()
                 self.start_update()
@@ -214,8 +278,16 @@ class App:
         for line in file:
             Y.append([int(n) for n in line.strip().split(' ')])
         return np.array(Y)
-    #def test(self):
+'''
+    def test(self):
+        X = self.pacman.heuristic_allmap()
+        path_return, explored, timeEscape = self.pacman.Graph_Search_A_Star()
+        print("The time to escape the maze:",timeEscape)
+        print("The list of explored nodes:",explored)
+        print("The list of nodes on the path found:",path_return)
        # print(self.pacman.level_1(self.road_map()))
+       '''
+       
 app = App()
 app.run()
 #answer = input('wrong')

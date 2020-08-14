@@ -1,8 +1,10 @@
 import tkinter
 import pygame
 import numpy as np
-
+import random
 from enum import Enum
+from direction import *
+
 class Color(Enum):
     AMBER = (255, 160, 0)
     BLACK = (0, 0, 0)
@@ -26,27 +28,22 @@ class Color(Enum):
     WHITE = (255, 255, 255)
     YELLOW = (251, 192, 45)
 
-class Direction(Enum):
-    LEFT = "l"
-    RIGHT = "r"
-    UP = "u"
-    DOWN = "d"
-
 ### CONFIGURATION
 WINDOW_TITLE = "BOOMAN"
+GAME_FONT = "res/font.ttf"
 SCREEN_HEIGHT, SCREEN_WIDTH = (512, 1024)
 DYNAMIC_SCREEN_SIZE = True # Tự động thay đổi kích thước phù hợp với map
-BLOCK_SIZE = 20
+BLOCK_SIZE = 30
 DOT_SIZE = 4
 GAME_FPS = 60
 
-FOOD_COLOR = Color.WHITE.value
-WALL_COLOR = Color.BLUE.value
-ROAD_COLOR = Color.BLACK.value
+FOOD_COLOR = Color.BLACK.value
+WALL_COLOR = random.choice([Color.RED.value, Color.BLUE.value, Color.PINK.value, Color.GREEN.value])
+ROAD_COLOR = Color.WHITE.value
 TEXT_COLOR = Color.BLUE.value
 
-GHOST_IMG = "res/slime.png"
-PACMAN_IMG = "res/player.png"
+GHOST_IMG = "res/slime" + random.choice(["1", "2", "3", "4"]) + ".png"
+PACMAN_IMG = "res/pacman.png"
 PACMAN_ANIMATION = "res/walk.png"
 PACMAN_STEP_COST = 1
 PACMAN_ANIMATION_SPEED = 5
@@ -86,14 +83,14 @@ class map_graphic():
         # self.start_x = start_x
 
         # self.score = 0
-        self.font = pygame.font.Font(None, BLOCK_SIZE)
+        self.font = pygame.font.Font(GAME_FONT, BLOCK_SIZE)
 
         self.pacman_block = None
         self.wall_blocks = pygame.sprite.Group()
         self.food_blocks = pygame.sprite.Group()
         self.ghost_blocks = pygame.sprite.Group()
         self.ghost_objs = []
-
+        
         for i, row in enumerate(grid_2d): # không phải self.grid_2d
             for j, item in enumerate(row):
                 x, y = self.to_screen_coord(i, j)
@@ -198,7 +195,7 @@ class character_animation():
         return len(self.animations)
 
     @staticmethod
-    def to_animation_list(animation_img, height=BLOCK_SIZE, width=BLOCK_SIZE)->str:
+    def to_animation_list(animation_img, colorkey=ROAD_COLOR, height=BLOCK_SIZE, width=BLOCK_SIZE)->str:
         animations = []
         if animation_img.get_height() >= animation_img.get_width():
             n_img = animation_img.get_height() // animation_img.get_width()
@@ -210,11 +207,14 @@ class character_animation():
             full_width = width * n_img
 
         resize_animation_img = pygame.transform.scale(animation_img, (full_width, full_height))
+        resize_animation_img.set_colorkey(colorkey)
 
         for y in range(0, full_height, height):
             for x in range(0, full_width, width):
                 # blank image
-                image = pygame.Surface((width, height)).convert()
+                image = pygame.Surface((width, height)).convert_alpha()
+                image.set_colorkey(colorkey)
+
                 # Vẽ đè animation_img vào image
                 image.blit(resize_animation_img, (0,0), (x, y, width, height))
                 # image.set_colorkey((0,0,0))
@@ -274,10 +274,17 @@ class pacman_graphic(pygame.sprite.Sprite):
         self.score = 0
 
         # walk animations objects
-        animation_img = pygame.image.load(animation_path).convert()
+        animation_img = pygame.image.load(animation_path).convert_alpha()
+        animation_img.set_colorkey(color_key)
+
         left_flipped = pygame.transform.flip(animation_img, True, False)
+        left_flipped.set_colorkey(color_key)
+
         up_flipped = pygame.transform.rotate(animation_img, 90)
+        up_flipped.set_colorkey(color_key)
+
         down_flipped = pygame.transform.rotate(up_flipped, 180)
+        down_flipped.set_colorkey(color_key)
 
         self.right_animation = character_animation(animation_img)
         self.left_animation = character_animation(left_flipped)
@@ -349,7 +356,8 @@ class pacman_graphic(pygame.sprite.Sprite):
                     map_obj.grid_2d[self.prev_i, self.prev_j] = ROAD
                 self.prev_i, self.prev_j = i, j
 
-                print("PACMAN POS: ", i, j)
+                nrow = map_obj.grid_2d.shape[0]
+                print(f"PACMAN POS: coord ({i}, {j})\t | cell {i + j * nrow}")
 
             self.moving_steps = 0
             self.moving_direction = None
@@ -418,7 +426,6 @@ class pacman_graphic(pygame.sprite.Sprite):
         return move
 
 
-import random
 class ghost_graphic(pygame.sprite.Sprite):
     def __init__(self, x, y, width=BLOCK_SIZE, height=BLOCK_SIZE, img_path=GHOST_IMG, color_key=ROAD_COLOR):
         super().__init__()
@@ -548,7 +555,6 @@ class ghost_graphic(pygame.sprite.Sprite):
         # print("GHOST move to ", move)
         return move
 
-
 import math
 class food_graphic(pygame.sprite.Sprite):
     def __init__(self, x, y, height, width, colorkey=FOOD_COLOR):
@@ -580,121 +586,3 @@ class wall_graphic(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect()
         self.rect.topleft = (x,y)
-
-
-# TODO: Chuyển hàm này vào class map_graphic?, hay là tạo class mới?
-def level1_2(map_obj: map_graphic, pacman_moves: list):
-
-    if map_obj.game_over:
-        return
-    
-    # Pacman ---------------------------
-    if pacman_moves is not None and len(pacman_moves) > 0:
-        if not map_obj.pacman_block.is_moving():
-            ### XÓA DÒNG NÀY KHI GHÉP THUẬT TOÁN LEVEL 1
-            pacman_moves.append(map_obj.pacman_block.random_moves(map_obj))
-            direction = pacman_moves.pop(0)
-            map_obj.pacman_block.turn(direction)
-        
-        map_obj.pacman_block.update(map_obj)
-        hit_food_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.food_blocks, True)
-
-        if len(hit_food_blocks) > 0:
-            map_obj.pacman_block.score += SCORE_PER_FOOD
-            food_x, food_y = hit_food_blocks[0].rect.topleft
-            print("FOOD (x, y): ", food_x, food_y)
-
-            food_i, food_j = map_obj.to_cell_coord(food_x, food_y)
-            print("FOOD (i, j): ", food_i, food_j)
-            map_obj.grid_2d[food_i, food_j] = WALL
-        
-
-    hit_ghost_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.ghost_blocks,True)
-    
-    if len(hit_ghost_blocks) > 0:
-        map_obj.game_over = True
-
-    # Ghosts ----------------------------
-    for ghost in map_obj.ghost_objs:
-        if not ghost.is_moving():
-            ghost.turn(ghost.random_moves(map_obj))
-
-    map_obj.ghost_blocks.update(map_obj)
-    
-def run_game1(grid_2d, pacman_i, pacman_j):
-    
-    # Initialize all imported pygame modules
-    pygame.init()
-
-    # get and set the system screen size
-    if DYNAMIC_SCREEN_SIZE:
-        display_info  = pygame.display.Info()
-        max_width, max_heigth = display_info.current_w, display_info.current_h
-        screen_width, screen_height = map_graphic.total_screen_size(grid_2d)
-    else:
-        screen_width, screen_height = (SCREEN_WIDTH, SCREEN_HEIGHT)
-    print(map_graphic.total_screen_size(grid_2d))
-    screen = pygame.display.set_mode((screen_width, screen_height + BLOCK_SIZE))
-
-    # Set the current window caption
-    pygame.display.set_caption(WINDOW_TITLE)
-    
-    # Used to manage how fast the screen updates
-    clock = pygame.time.Clock()
-
-    #Loop until the user clicks the close button.
-    closed_window = False
-
-    map_obj = map_graphic(screen, grid_2d, start_y=BLOCK_SIZE, pacman_i=pacman_i, pacman_j=pacman_j)
-    # screen.
-    
-    done = False
-
-    # Các hướng đi
-    u = Direction.UP.value
-    d = Direction.DOWN.value
-    l = Direction.LEFT.value
-    r = Direction.RIGHT.value
-
-    #### PATH CỦA PACMAN SẼ ĐƯỢC THAY VÀO ĐÂY
-    #### TẠM THỜI ĐỂ RANDOM
-    pacman_moves = [l]
-
-    # Game Loop -----------
-    while not done:
-
-        for event in pygame.event.get(): # User did something
-            if event.type == pygame.QUIT: # If user clicked close
-                done = True
-        if map_obj.game_over:
-            break
-        
-        level1_2(map_obj, pacman_moves)
-        map_obj.draw_map()
-
-        # Tăng/giảm frame speed ở đây
-        clock.tick(GAME_FPS)
-
-    print(map_obj)
-    print("SCORE: ", map_obj.pacman_block.score)
-
-    if map_obj.game_over:
-        pygame.time.wait(5000)
-    
-    pygame.quit()
-
-from readfile import *
-def main():
-
-    size, grid_2d, start = readfile('input/2/input1.txt')
-    size = np.array(size)
-    grid_2d = np.array(grid_2d)
-    start = np.array(start)
-
-    grid_2d, size, start = check_fence(grid_2d, size, start)
-    print("MAP SIZE: ", len(grid_2d))
-    run_game1(grid_2d, pacman_i=start[0], pacman_j=start[1])
-
-if __name__ == '__main__':
-    ##### VUI LÒNG CHUYỂN THƯ MỤC LÀM VIỆC Project_AI_BooMan_CSC14003 ĐỂ CÓ THỂ ĐỌC FILE ẢNH ĐƯỢC
-    main()

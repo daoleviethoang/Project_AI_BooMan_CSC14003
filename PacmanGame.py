@@ -4,7 +4,7 @@ import time
 import random
 import numpy as np
 
-WIDTH, HEIGHT = 240,160
+WIDTH, HEIGHT = 380,400
 FPS = 60
 TOP_BOTTOM_BUFFER = 50
 
@@ -16,7 +16,7 @@ GREY = (107,107,107)
 START_TEXT_SIZE = 16
 START_FONT = 'arial black'
 
-PLAY_START_POS = vec(0,0)
+#PLAY_START_POS = vec(18,17)
 
 pygame.init()
 
@@ -24,13 +24,13 @@ class Pacman:
     def __init__(self, app, pos):
         self.app = app
         self.gird_pos = pos
-        self.road = self.app.road_map()
+        self.road = self.app.map
         self.vision = []
         self.pac_location = pos
         self.pix_pos = self.get_pix_pos()
         self.step_move = vec(1,0)
         self.list_data = self.heuristic_allmap()
-        self.food = vec(4,11)
+        self.food = vec(18,1)
         self.move_level_1, self.explored, self.timeEscape = self.Graph_Search_A_Star()
     def move(self, choose_move):
         if choose_move == 1: #left
@@ -64,13 +64,13 @@ class Pacman:
             return 4
     def level_1(self):
         X = 0
-        self.move_level_1.pop(0)
         if not self.move_level_1:
             return X
         for i in self.move_level_1:
             S_x = int(i//(HEIGHT/20)) - self.pac_location.x
             S_y = int(i%(HEIGHT/20)) - self.pac_location.y
             X = self.level_return(int(S_x), int(S_y))
+            self.move_level_1.pop(0)
             break
         return X
     def pacman_play(self, level):
@@ -129,8 +129,9 @@ class Pacman:
         return current_node[0][-1]
     def Graph_Search_A_Star(self):
         queue = []
-        goal = int(self.food.x - 1) + int((HEIGHT/20)*int(self.food.y-1))
-        queue.append(([0],self.heuristic(0,goal),0))
+        goal = int(self.food.x) + int((HEIGHT/20)*int(self.food.y)) - 1
+        start = int(self.pac_location.x) + int((HEIGHT/20)*int(self.pac_location.y)) - 1
+        queue.append(([start],self.heuristic(start,goal),0))
         explored = []
         visited = []
         timeEscape = 0
@@ -155,7 +156,8 @@ class Pacman:
                         visited[x] = True
                         queue.append((catch1,self.heuristic(x,goal) + g + 1,g + 1))
         return [], explored, timeEscape
-''' #greedy di bui
+        '''
+ #greedy di bui
     def move_a_star(self):
         food = vec(30,21) #vector do an
         current = self.pac_location
@@ -195,14 +197,14 @@ class App:
         self.state = 'start'
         self.cell_width = 20 #(1 ô là 20, co the tinh theo WIDTH)
         self.cell_height = 20 #()
-        self.matrixRoad = []
-        self.pacman = Pacman(self, PLAY_START_POS)
+        self.size, self.map, self.start = self.readfile()
+        self.pacman = Pacman(self, self.start)
         self.X = 0
         #self.load()
 
     def run(self):
-        self.matrixRoad = self.road_map()
-        self.pacman.check_map(self.matrixRoad)
+        self.pacman.check_map(self.map)
+        #print(self.pacman.explored)
         while self.running:
             self.X = self.pacman.pacman_play(1)
             #X = random.randint(1,4)
@@ -269,7 +271,33 @@ class App:
     def playing_update(self, move):
         self.pacman.move(move)
         #self.pacman.move(2)
+    
+    def readfile(self):
+        f = open("matrixRoad.txt", 'r')#mo file
+        a = f.readline()
+        size = a.split(' ')
+        for i in range(len(size)):
+            size[i] = size[i].rstrip('\n')
+            size[i] = int(size[i])
+        map=[]
+        #print(size)
+        while True:
+            file = f.readline()
+            if not file:
+                break
+            temp = file.split(' ')
+            for i in range(len(temp)):
+                temp[i] = temp[i].rstrip('\n')
+                temp[i] = int(temp[i])
+            map.append(temp)
+        start = map.pop(-1)
+        #print(map)
+        #print(c)
+        f.close()
 
+        return vec(size[0], size[1]), np.array(map), vec(start[0], start[1])
+
+'''
     def road_map(self):
         file = open("matrixRoad.txt", 'r')
         Y = []
@@ -278,7 +306,7 @@ class App:
         for line in file:
             Y.append([int(n) for n in line.strip().split(' ')])
         return np.array(Y)
-'''
+
     def test(self):
         X = self.pacman.heuristic_allmap()
         path_return, explored, timeEscape = self.pacman.Graph_Search_A_Star()

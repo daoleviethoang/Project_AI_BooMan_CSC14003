@@ -15,7 +15,7 @@ class Color(Enum):
     DEEP_ORANGE = (230, 74, 25)
     DEEP_PURPLE = (81, 45, 168)
     GREEN = (56, 142, 60)
-    GREY = (97, 97, 97) 
+    GREY = (97, 97, 97)
     IDINGO = (48, 63, 159)
     LIGHT_BLUE = (2, 136, 209)
     LIGHT_GREEN = (104, 159, 56)
@@ -34,10 +34,10 @@ COLOR_LIST.remove(Color.WHITE.value)
 ### CONFIGURATION
 WINDOW_TITLE = "BOOMAN"
 GAME_FONT = "res/font.ttf"
-SCREEN_HEIGHT, SCREEN_WIDTH = (512, 1024)
+SCREEN_HEIGHT, SCREEN_WIDTH = (576, 800)
 DYNAMIC_SCREEN_SIZE = True  # Tự động thay đổi kích thước phù hợp với map
 BLOCK_SIZE = 30             # Giá trị BLOCK_SIZE có thể bị thay đổi khi DYNAMIC_SCREEN_SIZE = True
-DOT_SIZE = 4
+DOT_SIZE = BLOCK_SIZE // 6
 GAME_FPS = 60
 
 FOOD_COLOR = Color.BLACK.value
@@ -59,26 +59,38 @@ FOOD = 2
 GHOST = 3
 PACMAN = 4
 
+import tkinter as tk
 def set_screen_size(grid_2d):
+
     global BLOCK_SIZE
+    global DOT_SIZE
     # get and set the system screen size
     # graphic.BLOCK_SIZE
+
     if DYNAMIC_SCREEN_SIZE:
         display_info  = pygame.display.Info()
-        max_width, max_height = display_info.current_w, display_info.current_h
+        # max_width, max_height = display_info.current_w, display_info.current_h
         nrow, ncol = grid_2d.shape
+        print(f"{nrow} x {ncol}")
+        root = tk.Tk()
+        max_width = root.winfo_screenwidth()
+        max_height = root.winfo_screenheight()
 
+        print(f"MAX WIDTH, MAX HEIGHT: ({max_width} {max_height})")
         expected_height = int(max_height * 0.8)
         BLOCK_SIZE = expected_height // nrow
-        """
+
         if nrow <= 20:
-            graphic.BLOCK_SIZE = 30
-        elif nrow <= 40:
-            graphic.BLOCK_SIZE = 20
-        else: 
-            graphic.BLOCK_SIZE = 10
-        """
+            BLOCK_SIZE = 30
+        # elif nrow <= 40:
+        #     BLOCK_SIZE = 20
+        # else:
+        #     BLOCK_SIZE = 10
+
         screen_width, screen_height = map_graphic.total_screen_size(grid_2d, BLOCK_SIZE)
+        print(f"MAP WIDTH, MAP HEIGHT: ({screen_width} {screen_height})")
+        print(f"BLOCK_SIZE: {BLOCK_SIZE}")
+        DOT_SIZE = BLOCK_SIZE // 6
     else:
         screen_width, screen_height = (SCREEN_WIDTH, SCREEN_HEIGHT)
 
@@ -91,22 +103,23 @@ class map_graphic():
 
         self.screen = screen
         self.game_over = False
-        
+
         self.grid_2d = grid_2d.copy()
 
         # vị trí của GHOST, WALL
-        # tách ra thành 2 map riêng biệt 
+        # tách ra thành 2 map riêng biệt
         # vì trong một ô có thể vừa có GHOST vừa có FOOD
         self.ghost_map = self.grid_2d.copy()
         # thay hết các FOOD trong ghost_map thành empty path
         self.ghost_map[self.ghost_map == FOOD] = ROAD
-        
+
         # update pacman position in grid_2d
         # vị trí của PACMAN, FOOD, WALL
         self.grid_2d[pacman_i, pacman_j] = PACMAN
         self.grid_2d[self.grid_2d == GHOST] = ROAD
-        
+
         # Vị trí bắt đầu vẽ map trong window
+
         self.start_y = start_y
         self.pacman_x, self.pacman_y = self.to_screen_coord(pacman_i, pacman_j)
         # self.start_x = start_x
@@ -119,7 +132,7 @@ class map_graphic():
         self.food_blocks = pygame.sprite.Group()
         self.ghost_blocks = pygame.sprite.Group()
         self.ghost_objs = []
-        
+
         for i, row in enumerate(grid_2d): # không phải self.grid_2d
             for j, item in enumerate(row):
                 x, y = self.to_screen_coord(i, j)
@@ -162,7 +175,7 @@ class map_graphic():
         height = BLOCK_SIZE * (n_rows) + start_y
         width = BLOCK_SIZE * (n_cols)
         return width, height
-    
+
     def get_total_screen_size(self)->tuple:
         return map_graphic.total_screen_size(self.grid_2d, self.start_y)
 
@@ -173,16 +186,16 @@ class map_graphic():
         self.wall_blocks.draw(self.screen)
         self.food_blocks.draw(self.screen)
         self.ghost_blocks.draw(self.screen)
-        
+
         self.screen.blit(self.pacman_block.image, self.pacman_block.rect)
 
         # Render the text for the score
         score = self.pacman_block.score
         text = self.font.render("Score: " + str(score), True, Color.BLUE.value)
-        
+
         # Put the text on the screen
         self.screen.blit(text, (0,0))
-            
+
         # --- Go ahead and update the screen with what we've drawn.
         pygame.display.flip()
 
@@ -194,13 +207,13 @@ class map_graphic():
         return_str += ''.join(np.array2string(self.grid_2d, separator=',')) + "\n"
         return_str += "GHOST: \n"
         return_str += ''.join(np.array2string(self.ghost_map, separator=',')) + "\n"
-        return return_str     
+        return return_str
 
 
 class character_animation():
 
     """
-    animaiton_img: một tấm ảnh biểu diễn animation 
+    animaiton_img: một tấm ảnh biểu diễn animation
                     Kích thước tấm ảnh sẽ là (n * height, n * width) với n là số tấm ảnh con sẽ cắt ra để biểu diễn animation
     (height, width): chiều dài gốc của một tấm ảnh đơn
     """
@@ -208,7 +221,7 @@ class character_animation():
 
         # một list object các hình khi chạy sẽ cho ra animation
         self.animations = [pygame.transform.scale(img, (width, height)) for img in animation_imgs]
-        
+
         # Index đến tấm hình hiện tại trong self.animations
         self.clock = 0
         self.index = 0
@@ -255,7 +268,7 @@ class character_animation():
     def update(self, fps):
         step = 30 // fps
         l = range(1, 30, step)
-        
+
         if self.clock == 30:
             self.clock = 1
         else:
@@ -276,9 +289,9 @@ class pacman_graphic(pygame.sprite.Sprite):
     img_path: đường dẫn file ảnh pac-man
     color_key: ảnh nền đồ họa pac-man
     '''
-    def __init__(self, init_x, init_y, width, height, 
+    def __init__(self, init_x, init_y, width, height,
                 img_path=PACMAN_IMG, animation_paths=PACMAN_ANIMATION, color_key=ROAD_COLOR):
-    
+
         super().__init__()
 
         # Ảnh hiện tại
@@ -290,7 +303,7 @@ class pacman_graphic(pygame.sprite.Sprite):
 
         self.moving_direction = None # Direction.UP.value, Direction.DOWN.value,...
         self.moving_steps = 0
-        
+
         # Ảnh gốc
         self.original_image = self.image
 
@@ -306,7 +319,7 @@ class pacman_graphic(pygame.sprite.Sprite):
         animation_imgs = [pygame.image.load(path).convert_alpha() for path in animation_paths]
         for i in animation_imgs:
             i.set_colorkey(color_key)
-        
+
         left_flipped = list(map(lambda img: pygame.transform.flip(img, True, False), animation_imgs))
 
         up_flipped = list(map(lambda img: pygame.transform.rotate(img, 90), animation_imgs))
@@ -316,11 +329,11 @@ class pacman_graphic(pygame.sprite.Sprite):
         self.right_animation = character_animation(animation_imgs, height=BLOCK_SIZE, width=BLOCK_SIZE)
         self.left_animation = character_animation(left_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)
         self.up_animation = character_animation(up_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)
-        self.down_animation = character_animation(down_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)  
+        self.down_animation = character_animation(down_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)
 
         self.prev_i = -1
         self.prev_j = -1
-    
+
 
     def is_moving(self)->bool:
         return self.moving_direction is not None
@@ -331,13 +344,13 @@ class pacman_graphic(pygame.sprite.Sprite):
     def turn(self, direction: Direction):
         self.moving_direction = direction
         self.moving_steps = 0
-        
 
-    def update(self, map_obj:map_graphic, step_cost=PACMAN_STEP_COST, 
+
+    def update(self, map_obj:map_graphic, step_cost=PACMAN_STEP_COST,
                 step_len=STEP_LEN, update_fps=PACMAN_ANIMATION_SPEED):
         if self.moving_direction is None:
             return
-        
+
         cur_x, cur_y = self.rect.x, self.rect.y
 
         # Khi mà pacman đang di chuyển
@@ -370,7 +383,7 @@ class pacman_graphic(pygame.sprite.Sprite):
             else:
                 raise Exception("UNKNOWN DIRECTION VALUE")
             self.moving_steps += step_len
-        else: 
+        else:
 
             # Nếu đã di chuyển đến ô đích
             if self.moving_direction is not None:
@@ -391,7 +404,7 @@ class pacman_graphic(pygame.sprite.Sprite):
 
             # self.image = self.original_image
             return
-        
+
         # Dừng di chuyển khi đụng tường
         for block in pygame.sprite.spritecollide(self, map_obj.wall_blocks, False):
             block_x, block_y = block.rect.x, block.rect.y
@@ -413,7 +426,7 @@ class pacman_graphic(pygame.sprite.Sprite):
             self.moving_direction = None
             self.moving_steps = 0
             return
-        
+
         # tránh object lọt ra khỏi map
         max_width, max_height = map_obj.get_total_screen_size()
         if cur_x >= 0 and cur_x <= max_width - BLOCK_SIZE:
@@ -460,7 +473,7 @@ class ghost_graphic(pygame.sprite.Sprite):
 
         self.image = pygame.transform.scale(img, (width, height))
         # self.image.set_colorkey(color_key)
-        
+
         self.moving_direction = None #Direction.UP.value
         self.moving_steps = 0
 
@@ -472,20 +485,20 @@ class ghost_graphic(pygame.sprite.Sprite):
 
     def is_moving(self)->bool:
         return self.moving_direction is not None
-    
+
     """
     Chuyển hướng GHOST theo một direction mới
     """
     def turn(self, direction: Direction):
         self.moving_direction = direction
         self.moving_steps = 0
-        
+
 
     def update(self, map_obj:map_graphic, step_len=STEP_LEN):
 
         if self.moving_direction is None:
             return
-        
+
         cur_x, cur_y = self.rect.x, self.rect.y
 
         if self.moving_direction is not None and self.moving_steps < BLOCK_SIZE:
@@ -503,7 +516,7 @@ class ghost_graphic(pygame.sprite.Sprite):
                 cur_y += step_len
             if (cur_x, cur_y) != (self.rect.x, self.rect.y):
                 self.moving_steps += step_len
-        else: 
+        else:
             if self.moving_direction is not None:
                 # Cập nhật vị trí pacman trên grid_2d
                 i, j = map_obj.to_cell_coord(cur_x, cur_y)
@@ -517,7 +530,7 @@ class ghost_graphic(pygame.sprite.Sprite):
             self.moving_direction = None
             return
 
-        
+
         for block in pygame.sprite.spritecollide(self, map_obj.wall_blocks, False):
             block_x, block_y = block.rect.x, block.rect.y
             new_x, new_y = self.rect.x, self.rect.y
@@ -540,14 +553,14 @@ class ghost_graphic(pygame.sprite.Sprite):
             self.moving_steps = 0
 
             return
-        
+
         max_width, max_height = map_obj.get_total_screen_size()
         if cur_x >= 0 and cur_x <= max_width - BLOCK_SIZE:
             self.rect.x = cur_x
 
         if cur_y >= 0 and cur_y <= max_height - BLOCK_SIZE:
             self.rect.y = cur_y
-    
+
     def get_current_pos(self)->tuple:
         return self.rect.x, self.rect.y
 
@@ -587,7 +600,7 @@ class food_graphic(pygame.sprite.Sprite):
 
         self.image = pygame.Surface((width, height))
         self.color = colorkey
-        
+
         # self.image.set_colorkey(Color.BLACK.value)
         self.image.fill(ROAD_COLOR)
 

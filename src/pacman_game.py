@@ -5,6 +5,7 @@ import random
 import numpy as np
 
 from map import *
+import map as m
 
 # CONFIGURATION FOR DEBUGGING PURPOSE
 FORCE_TO_MOVE = True # Bắt con pacman phải đi mặc dù thức ăn quá xa
@@ -23,8 +24,8 @@ class Pacman:
         self.list_data = self.heuristic_allmap() # adjacency list
 
     def get_pix_pos(self):
-        return (vec(((self.grid_pos.x + 1/2)*BLOCK_SIZE), \
-                ((self.grid_pos.y + 1/2)*BLOCK_SIZE)))
+        return (vec(((self.grid_pos.x + 1/2)*m.BLOCK_SIZE), \
+                ((self.grid_pos.y + 1/2)*m.BLOCK_SIZE)))
     
     def check_map(self, road):
         self.road = road
@@ -178,15 +179,17 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
     # map_obj.ghost_blocks.update(map_obj)
 
 from pygame.math import Vector2 as vec
-def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j):
+def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     
     # Initialize all imported pygame modules
-    pygame.init()
+    print("HELLO")
+    if not init_yet:
+        pygame.init()
 
     # get and set the system screen size
     screen_width, screen_height = set_screen_size(grid_2d)
     # print(total_screen_size(grid_2d))
-    screen = pygame.display.set_mode((screen_width, screen_height + BLOCK_SIZE))
+    screen = pygame.display.set_mode((screen_width, screen_height + m.BLOCK_SIZE))
 
     # Set the current window caption
     pygame.display.set_caption(WINDOW_TITLE)
@@ -196,10 +199,14 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j):
 
     #Loop until the user clicks the close button.
     closed_window = False
+    start_y = m.BLOCK_SIZE
 
-    map_obj = map_graphic(screen, grid_2d, start_y=BLOCK_SIZE, pacman_i=pacman_i, pacman_j=pacman_j)
+    print(f"Block size: {m.BLOCK_SIZE}")
+    print(f"start_y: {start_y}")
+
+    map_obj = map_graphic(screen, grid_2d, start_y, pacman_i=pacman_i, pacman_j=pacman_j)
     pacman = Pacman(map_obj, vec(pacman_j, pacman_i))    
-        
+    
     # ----------------------
     # Tính toán đường đi của pacman
     foods = np.where(map_obj.grid_2d == FOOD)
@@ -249,11 +256,12 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j):
 
     if game_over:
         pygame.time.wait(5000)
-    
-    pygame.quit()
+
+    if not init_yet:
+        pygame.quit()
 
 from readfile import *
-def main():
+def test():
     
     size, grid_2d, start = readfile('input/1/input21.txt')
     size = np.array(size)
@@ -264,6 +272,30 @@ def main():
     print("MAP SIZE: ", len(grid_2d))
     run_game1(grid_2d, pacman_i=start[0], pacman_j=start[1])
 
+def main(level, path):
+
+    size, grid_2d, start = readfile(path)
+    size = np.array(size)
+    grid_2d = np.array(grid_2d)
+    start = np.array(start)
+
+    grid_2d, size, start = check_fence(grid_2d, size, start)
+    print("MAP SIZE: ", len(grid_2d))
+    print(f"LEVEL  : {level}")
+    print(f"PATH   : {path}")
+    level1_2_str = [1, 2, "1", "2", "LEVEL1", "LEVEL2"]
+
+    if level in level1_2_str:
+        print(f"PLAY {level}")
+        run_game1(grid_2d, pacman_i=start[0], pacman_j=start[1])
+    
+
+import sys
 if __name__ == '__main__':
     ##### VUI LÒNG CHUYỂN THƯ MỤC LÀM VIỆC Project_AI_BooMan_CSC14003 ĐỂ CÓ THỂ ĐỌC FILE ẢNH ĐƯỢC
-    main()
+    # main()
+    argv = sys.argv
+    if len(argv) <= 1:
+        test()
+    else:
+        main(argv[1], argv[2])

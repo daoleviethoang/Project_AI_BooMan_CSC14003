@@ -16,7 +16,10 @@ def readfile(path):
         temp = file.split(' ')
         for i in range(len(temp)):
             temp[i] = temp[i].rstrip('\n')
-            temp[i] = int(temp[i])
+            try:
+                temp[i] = int(temp[i])
+            except ValueError:
+                temp.pop(i)
         map.append(temp)
     start = map.pop(-1)
     #print(map)

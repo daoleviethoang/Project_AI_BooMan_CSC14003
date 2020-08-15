@@ -11,7 +11,6 @@ pygame.display.set_caption('PACMAN')
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 576
 
-
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 COLOR_MENU = (0, 102, 37)
@@ -21,11 +20,11 @@ EXIT2_COLOR = (255, 0, 0)
 FONT_MENU_COLOR = (255, 255, 255)
 FONT2_MENU_COLOR = (153, 153, 153)
 FONT_MAP_COLOR = (115, 115, 115)
-font = pygame.font.Font(r'font.ttf', 25)
-font2 = pygame.font.Font(r'font2.ttf', 63)
-font3 = pygame.font.Font(r'font3.ttf', 40)
+font = pygame.font.Font(r'res/font.ttf', 25)
+font2 = pygame.font.Font(r'res/font2.ttf', 63)
+font3 = pygame.font.Font(r'res/font3.ttf', 40)
 
-image = pygame.image.load(r'background.png')
+image = pygame.image.load(r'res/background.png')
 
 
 def draw_Text(text, font, color, surface, x, y):
@@ -68,7 +67,7 @@ click = False
 
 
 def Main_Menu():
-    pygame.mixer.music.load('start.mp3')
+    pygame.mixer.music.load('res/start.mp3')
     pygame.mixer.music.play(-1)  
     while True:
         screen.fill((0, 0, 0))
@@ -192,5 +191,5 @@ def choose_map(level):
 def load_game(path, level):
     print(path)
 
-
-Main_Menu()
+if __name__ == "__main__":
+    Main_Menu()

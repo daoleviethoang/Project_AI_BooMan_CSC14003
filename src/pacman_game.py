@@ -5,6 +5,10 @@ import random
 import numpy as np
 
 from map import *
+
+# CONFIGURATION FOR DEBUGGING PURPOSE
+FORCE_TO_MOVE = True # Bắt con pacman phải đi mặc dù thức ăn quá xa
+
 class Pacman:
     def __init__(self, map_obj, pos):
         self.map_obj = map_obj
@@ -19,7 +23,8 @@ class Pacman:
         self.list_data = self.heuristic_allmap() # adjacency list
 
     def get_pix_pos(self):
-        return (vec(((self.grid_pos.x + 1/2)*BLOCK_SIZE), ((self.grid_pos.y + 1/2)*BLOCK_SIZE)))
+        return (vec(((self.grid_pos.x + 1/2)*BLOCK_SIZE), \
+                ((self.grid_pos.y + 1/2)*BLOCK_SIZE)))
     
     def check_map(self, road):
         self.road = road
@@ -127,15 +132,12 @@ class Pacman:
         return [], explored, timeEscape
 
 
-
 # TODO: Chuyển hàm này vào class một class nào đó?
 def level1_2(map_obj: map_graphic, pacman_moves: list):
 
     if map_obj.game_over:
         return
     
-    has_moves = False
-
     # Pacman ---------------------------
     if pacman_moves is not None or len(pacman_moves) > 0:
         if not map_obj.pacman_block.is_moving():
@@ -165,7 +167,7 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
         map_obj.game_over = True
 
     # Pac đã đi hết đoạn đường cần đi
-    elif has_moves and len(pacman_moves) == 0 and not map_obj.pacman_block.is_moving():
+    if len(pacman_moves) == 0 and not map_obj.pacman_block.is_moving():
         map_obj.game_over = True
         
     # Ghosts ----------------------------
@@ -174,21 +176,16 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
     #        ghost.turn(ghost.random_moves(map_obj))
 
     # map_obj.ghost_blocks.update(map_obj)
-    
+
 from pygame.math import Vector2 as vec
-def run_game1(grid_2d, pacman_i, pacman_j):
+def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j):
     
     # Initialize all imported pygame modules
     pygame.init()
 
     # get and set the system screen size
-    if DYNAMIC_SCREEN_SIZE:
-        display_info  = pygame.display.Info()
-        max_width, max_heigth = display_info.current_w, display_info.current_h
-        screen_width, screen_height = map_graphic.total_screen_size(grid_2d)
-    else:
-        screen_width, screen_height = (SCREEN_WIDTH, SCREEN_HEIGHT)
-    print(map_graphic.total_screen_size(grid_2d))
+    screen_width, screen_height = set_screen_size(grid_2d)
+    # print(total_screen_size(grid_2d))
     screen = pygame.display.set_mode((screen_width, screen_height + BLOCK_SIZE))
 
     # Set the current window caption
@@ -206,21 +203,25 @@ def run_game1(grid_2d, pacman_i, pacman_j):
     # ----------------------
     # Tính toán đường đi của pacman
     foods = np.where(map_obj.grid_2d == FOOD)
+    should_go = True
     if not np.size(foods) == 0:
         food_x = foods[1][0]
         food_y = foods[0][0]
 
         nrow, _ = map_obj.grid_2d.shape
         path, _, _ = pacman.Graph_Search_A_Star(food_x, food_y)
+        # Quyết định chọn đi hay không:
+        if not FORCE_TO_MOVE:
+            should_go = len(path) - 2 <= SCORE_PER_FOOD
         
         pacman_moves = coord_to_direction(cell_to_coord(path, nrow), start_x=pacman_j, start_y=pacman_i)
     else: 
-        pacman_moves = []   
+        path = []
+        pacman_moves = []
+        should_go = False
     
     print(f"Path: {len(path)} | {path}")
     print(f"Moves: {len(pacman_moves)} | {pacman_moves}")
-    # Quyết định chọn đi hay không:
-    should_go = len(path) - 2 <= SCORE_PER_FOOD
 
     # Game Loop -----------
     done = False
@@ -254,7 +255,7 @@ def run_game1(grid_2d, pacman_i, pacman_j):
 from readfile import *
 def main():
     
-    size, grid_2d, start = readfile('input/1/input0.txt')
+    size, grid_2d, start = readfile('input/1/input21.txt')
     size = np.array(size)
     grid_2d = np.array(grid_2d)
     start = np.array(start)

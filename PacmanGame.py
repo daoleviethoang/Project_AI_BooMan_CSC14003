@@ -31,6 +31,7 @@ class Pacman:
         self.step_move = vec(1,0)
         self.list_data = self.heuristic_allmap(self.road,int(WIDTH/20),int(HEIGHT/20)).copy()
         self.food = vec(18,1)
+        self.save_shadow = self.create_save_shadow()
         self.move_level_1, self.explored, self.timeEscape = self.Graph_Search_A_Star()
     def move(self, choose_move):
         if choose_move == 1: #left
@@ -160,10 +161,15 @@ class Pacman:
                         queue.append((catch1,self.heuristic(x,goal) + g + 1,g + 1))
         return [], explored, timeEscape
     def create_save_shadow(self):
-        
+        temp = []
+        save_shadow = []
+        for i in range(int(HEIGHT/20)):
+            for j in range(int(WIDTH/20)):
+                temp.append(-1)
+            save_shadow.append(temp)
+        return save_shadow
     def get_shadow(self):
         map_shadow = []
-        save_shadow = []
         flag = 0
         check = 0
         for row in range(int(self.pac_location.x) - 3, int(self.pac_location.x)+4):
@@ -307,7 +313,9 @@ class Pacman:
                 flag -= 1
         return limit
     def path_level_3(self):
+        self.road = [[self.road[j][i] for j in range(len(self.road))] for i in range(len(self.road[0]))]
         map_shadow = self.check_monster(self.get_shadow()).copy()
+        #map_shadow = [[map_shadow1[j][i] for j in range(len(map_shadow1))] for i in range(len(map_shadow1[0]))] 
         set_food = self.get_food(map_shadow).copy()
         data_level3 = self.heuristic_allmap(map_shadow, 7, 7).copy()
         start = 3 + 7*3
@@ -322,9 +330,9 @@ class Pacman:
             for i in d_limit:
                 path_return, explored, timeEscape = self.Breadth_First_Search(data_level3,start, i)
                 set_path_limit.append(path_return)
-            if len(set_path_limit) > 1:
-                list_path = sorted(set_path_limit, key = len)
-                list2 = [e for e in list_path if e]
+            list2 = [e for e in set_path_limit if e]
+            if len(list2) > 1:
+                list_path = sorted(list2, key = len)
                 return list2[0]
             else:
                 print('end game')
@@ -337,9 +345,9 @@ class Pacman:
             for i in data_food:
                 path_return,explored,timeEscape = self.Breadth_First_Search(data_level3,start, i)
                 Y.append(path_return)
-        if len(Y) > 1:
-            queue1 = sorted(Y, key = len)
-            queue = [e for e in queue1 if e]
+        queue1 = [e for e in Y if e]
+        if len(queue1) > 1:
+            queue = sorted(queue1, key = len)
             return queue[0]
         if len(Y[0]) > 0:
             return Y[0]

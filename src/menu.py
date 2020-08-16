@@ -6,7 +6,7 @@ from pygame.locals import *
 pygame.init()
 mainClock = pygame.time.Clock()
 #create the screen 
-pygame.display.set_caption('PACMAN')
+pygame.display.set_caption('PACMAN MAIN MENU')
 
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 576

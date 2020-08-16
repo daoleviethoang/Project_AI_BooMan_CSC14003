@@ -29,7 +29,7 @@ class Pacman:
         self.pac_location = pos
         self.pix_pos = self.get_pix_pos()
         self.step_move = vec(1,0)
-        self.list_data = self.heuristic_allmap()
+        self.list_data = self.heuristic_allmap(self.road,int(WIDTH/20),int(HEIGHT/20)).copy()
         self.food = vec(18,1)
         self.move_level_1, self.explored, self.timeEscape = self.Graph_Search_A_Star()
     def move(self, choose_move):
@@ -39,12 +39,14 @@ class Pacman:
         if choose_move == 2: #right
             self.pix_pos += vec(20,0)
             self.pac_location.x += 1
-        if choose_move == 3: #down
+        if choose_move == 3: #up
             self.pix_pos += vec(0,-20)
             self.pac_location.y -= 1
-        if choose_move == 4: #up
+        if choose_move == 4: #down
             self.pix_pos += vec(0,20)
             self.pac_location.y += 1
+        if choose_move == 5:
+            self.pix_pos += vec(0,0)
     def update(self):
         pass
     def draw(self):
@@ -62,6 +64,8 @@ class Pacman:
             return 3
         elif S_x == 0 and S_y == 1:
             return 4
+        elif S_x == 0 and S_y == 0:
+            return 5
     def level_1(self):
         X = 0
         if not self.move_level_1:
@@ -74,20 +78,19 @@ class Pacman:
             break
         return X
     def pacman_play(self, level):
-        if level == 1:
+        if level == 1 or level == 2:
             self.vision = self.road
             return self.level_1()
-        elif level == 2:
-            pass
         elif level == 3:
+            return self.level_3()
             pass
         elif  level == 4:
             pass
     def heuristic(self, current, food):
         #mahatan
         return abs(current%int(HEIGHT/20) - food%int(HEIGHT/20)) + abs(current//int(HEIGHT/20) - food//int(HEIGHT/20))
-    def isValid(self, row, col):
-        if (row >= 0) and (row < HEIGHT/20) and (col >= 0) and (col < WIDTH/20):
+    def isValid(self, row, col, height, width):
+        if (row >= 0) and (row < height) and (col >= 0) and (col < width):
             return True
         else:
             return False
@@ -101,24 +104,24 @@ class Pacman:
             return True
         else:
             return False
-    def heuristic_allmap(self):
+    def heuristic_allmap(self, map,width, height):
         allmap = []
-        for col in range(int(WIDTH/20)):
-            for row in range(int(HEIGHT/20)):
+        for col in range(width):
+            for row in range(int(height)):
                 temp = []
-                if self.isUnblock(self.road, row, col) == True and self.isValid(row, col) == True:
+                if self.isUnblock(map, row, col) == True and self.isValid(row, col, height, width) == True:
                         up = [row - 1,col]
                         down = [row + 1, col]
                         left = [row, col - 1]
                         right = [row, col + 1]
-                        if self.isValid(up[0], up[1]) == True and self.isUnblock(self.road, up[0], up[1]) == True:
-                            temp.append(int(HEIGHT/20)*up[1]+up[0])
-                        if self.isValid(down[0], down[1]) == True and self.isUnblock(self.road, down[0], down[1]) == True:
-                            temp.append(int(HEIGHT/20)*down[1]+down[0])
-                        if self.isValid(left[0], left[1]) == True and self.isUnblock(self.road, left[0], left[1]) == True:
-                            temp.append(int(HEIGHT/20)*left[1]+left[0])
-                        if self.isValid(right[0], right[1]) == True and self.isUnblock(self.road, right[0], right[1]) == True:
-                            temp.append(int(HEIGHT/20)*right[1]+right[0])
+                        if self.isValid(up[0], up[1], height, width) == True and self.isUnblock(map, up[0], up[1]) == True:
+                            temp.append(int(height)*up[1]+up[0])
+                        if self.isValid(down[0], down[1], height, width) == True and self.isUnblock(map, down[0], down[1]) == True:
+                            temp.append(int(height)*down[1]+down[0])
+                        if self.isValid(left[0], left[1], height, width) == True and self.isUnblock(map, left[0], left[1]) == True:
+                            temp.append(int(height)*left[1]+left[0])
+                        if self.isValid(right[0], right[1], height, width) == True and self.isUnblock(map, right[0], right[1]) == True:
+                            temp.append(int(height)*right[1]+right[0])
                         allmap.append(temp)
                 else:
                     allmap.append([])
@@ -129,8 +132,8 @@ class Pacman:
         return current_node[0][-1]
     def Graph_Search_A_Star(self):
         queue = []
-        goal = int(self.food.x) + int((HEIGHT/20)*int(self.food.y)) - 1
-        start = int(self.pac_location.x) + int((HEIGHT/20)*int(self.pac_location.y)) - 1
+        goal = int(self.food.x) + int((HEIGHT/20)*int(self.food.y))
+        start = int(self.pac_location.x) + int((HEIGHT/20)*int(self.pac_location.y))
         queue.append(([start],self.heuristic(start,goal),0))
         explored = []
         visited = []
@@ -156,6 +159,203 @@ class Pacman:
                         visited[x] = True
                         queue.append((catch1,self.heuristic(x,goal) + g + 1,g + 1))
         return [], explored, timeEscape
+    def create_save_shadow(self):
+        
+    def get_shadow(self):
+        map_shadow = []
+        save_shadow = []
+        flag = 0
+        check = 0
+        for row in range(int(self.pac_location.x) - 3, int(self.pac_location.x)+4):
+            temp = []
+            for col in range(int(self.pac_location.y) -3, int(self.pac_location.y) +4):
+                if self.isValid(row,col, HEIGHT/20, WIDTH/20) == True and col >= (int(self.pac_location.y) - flag) and col <= (int(self.pac_location.y) + flag):
+                    if(self.pac_location.x == row and self.pac_location.y == col and self.road[row][col] == 2):
+                        self.road[row][col] = 0
+                    temp.append(self.road[row][col])
+                else:
+                    temp.append(-1)
+            if flag <= 3 and check == 0:
+                flag += 1
+            if flag > 3:
+                flag = flag - 1
+                check = 1
+            if check == 1:
+                flag -= 1
+            map_shadow.append(temp)
+        return map_shadow
+    def get_food(self, map_shadow):
+        food = []
+        for row in range(len(map_shadow)):
+            for col in range(len(map_shadow[0])):
+                if(map_shadow[row][col] == 2):
+                    food.append([row,col])
+        return food
+    def check_monster(self, map_shadow):
+        for row in range(len(map_shadow)):
+            for col in range(len(map_shadow[0])):
+                check = 0
+                if(map_shadow[row][col] == 3):
+                    if(row == 3 and col == 0):
+                        if  map_shadow[row][col + 1] == 3:
+                            map_shadow[row][col] = 1
+                        else:
+                            map_shadow[row][col] = 1
+                            map_shadow[row][col + 1] = 1
+                    elif(row == 3 and col == len(map_shadow[0]) - 1):
+                        if map_shadow[row][col - 1] == 3:
+                            map_shadow[row][col] = 1
+                        else:
+                            map_shadow[row][col] = 1
+                            map_shadow[row][col - 1] = 1
+                    elif(col == 3 and row == 0):
+                        if map_shadow[row + 1][col] == 3:
+                            map_shadow[row][col] = 1
+                        else:
+                            map_shadow[row+1][col] = 1
+                            map_shadow[row][col] = 1
+                    elif(col == 3 and row == len(map_shadow[0]) - 1):
+                        if map_shadow[row - 1][col] == 3: 
+                            map_shadow[row][col] = 1
+                        else:
+                            map_shadow[row][col] = 1
+                            map_shadow[row - 1][col] == 1
+                    else:
+                        if row == 3 and col == 2:
+                            check = 1
+                        elif(row == 2 and col == 3):
+                            check = 2
+                        elif(row == 3 and col == 4):
+                            check = 3
+                        elif(row == 4 and col == 3):
+                            check = 4
+                        map_shadow[row][col] = 1
+                        if(map_shadow[row][col+1] != -1 and map_shadow[row][col+1] != 3 and check != 1):
+                            map_shadow[row][col+1] = 1
+                        if(map_shadow[row][col-1] != -1 and map_shadow[row][col-1] != 3 and check != 3):
+                            map_shadow[row][col-1] = 1
+                        if(map_shadow[row+1][col] != -1 and map_shadow[row+1][col] != 3 and check != 2):
+                            map_shadow[row+1][col] = 1
+                        if(map_shadow[row-1][col] != -1 and map_shadow[row-1][col] != 3 and check != 4):
+                            map_shadow[row-1][col] = 1
+        return map_shadow   
+    #cap nhap bong pacman
+    #cap nhap bong cua ma
+    #cap nhap do an
+    #bat dau tinh trong bong
+
+    def Breadth_First_Search(self, list_data, start, food):
+        queue = []
+        queue.append([start])
+        explored = []
+        visited = []
+        timeEscape = 0
+        for i in range(0,len(list_data)):
+            visited.append(False)
+        visited[0] = True
+        while len(queue) > 0:
+            catch = queue.pop(0)
+            explored.append(catch[-1])
+            timeEscape += 1
+            visited[catch[-1]] = True
+            if catch[-1] == food:
+                return catch, explored, timeEscape
+            else:
+                for x in list_data[catch[-1]]:
+                    catch1 = catch.copy()
+                    catch1.append(x)
+                    if visited[x] == False:
+                        visited[x] = True
+                        queue.append(catch1)
+        return [], explored, timeEscape
+
+    def get_w_food(self, set_food):
+        data_food = []
+        for x in set_food:
+            data_food.append(int(x[0]) + int((7)*int(x[1])))
+        return data_food
+    def check_around(self, map_shadow):
+        X = []
+
+        if(map_shadow[3][2] == 0):
+            X.append([3,2])
+        if(map_shadow[3][4] == 0):
+            X.append([3,4])
+        if(map_shadow[2][3] == 0):
+            X.append([2,3])
+        if(map_shadow[4][3] == 0):
+            X.append([4,3])
+        if len(X) != 0:
+            i = random.randint(0,len(X) - 1)
+            return X[i]
+        return []
+    def set_limit(self, map_shadow):
+        limit = []
+        flag = 0
+        check = 0
+        for row in range(7):
+            for col in range(7):
+                if(col == (3 - flag) or col == (3 + flag)):
+                    if map_shadow[row][col] != 1 and map_shadow[row][col] != -1:
+                        limit.append([row,col])
+            if flag <= 3 and check == 0:
+                flag += 1
+            if flag > 3:
+                flag = flag - 1
+                check = 1
+            if check == 1:
+                flag -= 1
+        return limit
+    def path_level_3(self):
+        map_shadow = self.check_monster(self.get_shadow()).copy()
+        set_food = self.get_food(map_shadow).copy()
+        data_level3 = self.heuristic_allmap(map_shadow, 7, 7).copy()
+        start = 3 + 7*3
+        data_food = self.get_w_food(set_food).copy()
+        Y = []
+        check = 0
+        set_path_limit = []
+        if not data_food:
+            check = 1
+            s_limit = self.set_limit(map_shadow)
+            d_limit = self.get_w_food(s_limit)
+            for i in d_limit:
+                path_return, explored, timeEscape = self.Breadth_First_Search(data_level3,start, i)
+                set_path_limit.append(path_return)
+            if len(set_path_limit) > 1:
+                list_path = sorted(set_path_limit, key = len)
+                list2 = [e for e in list_path if e]
+                return list2[0]
+            else:
+                print('end game')
+                return []
+            #X = self.check_around(map_shadow).copy()
+            #goal = int(X[0]) + int((7)*int(X[1]))
+            #path_return,explored,timeEscape = self.Breadth_First_Search(data_level3, start, goal)
+            return path_return
+        else:
+            for i in data_food:
+                path_return,explored,timeEscape = self.Breadth_First_Search(data_level3,start, i)
+                Y.append(path_return)
+        if len(Y) > 1:
+            queue1 = sorted(Y, key = len)
+            queue = [e for e in queue1 if e]
+            return queue[0]
+        if len(Y[0]) > 0:
+            return Y[0]
+        elif check != 1:
+            return explored
+    def level_3(self):
+        path_temp = self.path_level_3().copy()
+        if len(path_temp) > 1:
+            path_temp.pop(0)
+        else:
+            return 5
+        for i in path_temp:
+            S_x = int(i%7) - 3
+            S_y = int(i//7) - 3
+            X = self.level_return(int(S_x), int(S_y))
+            return X
         '''
  #greedy di bui
     def move_a_star(self):
@@ -206,7 +406,7 @@ class App:
         self.pacman.check_map(self.map)
         #print(self.pacman.explored)
         while self.running:
-            self.X = self.pacman.pacman_play(1)
+            self.X = self.pacman.pacman_play(3)
             #X = random.randint(1,4)
             if self.X == 0:
                 print('End Game')
@@ -296,7 +496,10 @@ class App:
         f.close()
 
         return vec(size[0], size[1]), np.array(map), vec(start[0], start[1])
-
+    def test(self):
+        A= self.pacman.path_level_3()
+        print(A)
+       # print(self.pacman.level_1(self.road_map()))
 '''
     def road_map(self):
         file = open("matrixRoad.txt", 'r')
@@ -306,15 +509,7 @@ class App:
         for line in file:
             Y.append([int(n) for n in line.strip().split(' ')])
         return np.array(Y)
-
-    def test(self):
-        X = self.pacman.heuristic_allmap()
-        path_return, explored, timeEscape = self.pacman.Graph_Search_A_Star()
-        print("The time to escape the maze:",timeEscape)
-        print("The list of explored nodes:",explored)
-        print("The list of nodes on the path found:",path_return)
-       # print(self.pacman.level_1(self.road_map()))
-       '''
+'''
        
 app = App()
 app.run()

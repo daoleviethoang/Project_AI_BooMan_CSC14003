@@ -8,7 +8,7 @@ from map import *
 import map as m
 
 # CONFIGURATION FOR DEBUGGING PURPOSE
-FORCE_TO_MOVE = True # Bắt con pacman phải đi mặc dù thức ăn quá xa
+FORCE_TO_MOVE = False # Bắt con pacman phải đi mặc dù thức ăn quá xa
 
 class Pacman:
     def __init__(self, map_obj, pos):
@@ -136,7 +136,7 @@ class Pacman:
 # TODO: Chuyển hàm này vào class một class nào đó?
 def level1_2(map_obj: map_graphic, pacman_moves: list):
 
-    if map_obj.game_over:
+    if map_obj.game_over[0]:
         return
     
     # Pacman ---------------------------
@@ -148,28 +148,17 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
                 has_moves = True
                 direction = pacman_moves.pop(0)
                 map_obj.pacman_block.turn(direction)
-        
+
         map_obj.pacman_block.update(map_obj)
-        hit_food_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.food_blocks, True)
-
-        if len(hit_food_blocks) > 0:
-            map_obj.pacman_block.score += SCORE_PER_FOOD
-            food_x, food_y = hit_food_blocks[0].rect.topleft
-            print("FOOD (x, y): ", food_x, food_y)
-
-            food_i, food_j = map_obj.to_cell_coord(food_x, food_y)
-            print("FOOD (i, j): ", food_i, food_j)
-            map_obj.grid_2d[food_i, food_j] = WALL
-        
 
     hit_ghost_blocks = pygame.sprite.spritecollide(map_obj.pacman_block, map_obj.ghost_blocks,True)
     
     if len(hit_ghost_blocks) > 0:
-        map_obj.game_over = True
+        map_obj.game_over = True, 1
 
     # Pac đã đi hết đoạn đường cần đi
     if len(pacman_moves) == 0 and not map_obj.pacman_block.is_moving():
-        map_obj.game_over = True
+        map_obj.game_over = True, 2
         
     # Ghosts ----------------------------
     # for ghost in map_obj.ghost_objs:
@@ -179,6 +168,8 @@ def level1_2(map_obj: map_graphic, pacman_moves: list):
     # map_obj.ghost_blocks.update(map_obj)
 
 from pygame.math import Vector2 as vec
+import winning
+import multiprocessing as mp
 def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     
     # Initialize all imported pygame modules
@@ -219,9 +210,9 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
         path, _, _ = pacman.Graph_Search_A_Star(food_x, food_y)
         # Quyết định chọn đi hay không:
         if not FORCE_TO_MOVE:
-            should_go = len(path) - 2 <= SCORE_PER_FOOD
+            should_go = len(path) - 1 <= SCORE_PER_FOOD
         
-        pacman_moves = coord_to_direction(cell_to_coord(path, nrow), start_x=pacman_j, start_y=pacman_i)
+        pacman_moves = coord_to_direction(cell_to_coord(path, nrow), pacman_i, pacman_j)
     else: 
         path = []
         pacman_moves = []
@@ -232,7 +223,8 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
 
     # Game Loop -----------
     done = False
-    game_over = False
+    game_over = False # 0: no moves, 1: hitted by ghost, 2: 
+
     while not done:
 
         for event in pygame.event.get(): # User did something
@@ -244,8 +236,16 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
 
         map_obj.draw_map()
 
-        if map_obj.game_over or not should_go:
+        if map_obj.game_over[0] or not should_go:
+            if not should_go:
+                map_obj.game_over = True, 0
+
             game_over = True
+            ctx = mp.get_context('spawn')
+            p = ctx.Process(target=winning.winning_screen, args=(map_obj.game_over[1], 
+                            map_obj.pacman_block.score, map_obj.pacman_block.path_length))
+            p.start()
+            p.join()
             break
 
         # Tăng/giảm frame speed ở đây
@@ -254,8 +254,8 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     print(map_obj)
     print("SCORE: ", map_obj.pacman_block.score)
 
-    if game_over:
-        pygame.time.wait(5000)
+    if not should_go:
+        pygame.time.wait(2000)
 
     if not init_yet:
         pygame.quit()
@@ -263,7 +263,7 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
 from readfile import *
 def test():
     
-    size, grid_2d, start = readfile('input/1/input21.txt')
+    size, grid_2d, start = readfile('input/1/input17.txt')
     size = np.array(size)
     grid_2d = np.array(grid_2d)
     start = np.array(start)

@@ -102,7 +102,7 @@ class map_graphic():
     def __init__(self, screen, grid_2d: np.ndarray, start_y: int, pacman_i: int, pacman_j: int):
 
         self.screen = screen
-        self.game_over = False
+        self.game_over = False, -1
 
         self.grid_2d = grid_2d.copy()
 
@@ -125,7 +125,7 @@ class map_graphic():
         # self.start_x = start_x
 
         # self.score = 0
-        self.font = pygame.font.Font(GAME_FONT, BLOCK_SIZE)
+        self.font = pygame.font.Font(GAME_FONT, BLOCK_SIZE//2)
 
         self.pacman_block = None
         self.wall_blocks = pygame.sprite.Group()
@@ -191,7 +191,9 @@ class map_graphic():
 
         # Render the text for the score
         score = self.pacman_block.score
-        text = self.font.render("Score: " + str(score), True, Color.BLUE.value)
+        time = self.pacman_block.path_length
+        text = self.font.render(f"Score: {score} Time: {time}", True, Color.BLUE.value)
+        # text = self.font.render(f"Time: {time}", True, Color.BLUE.value)
 
         # Put the text on the screen
         self.screen.blit(text, (0,0))
@@ -314,6 +316,7 @@ class pacman_graphic(pygame.sprite.Sprite):
         self.rect.topleft = (init_x, init_y)
 
         self.score = 0
+        self.path_length = 0
 
         # walk animations objects
         animation_imgs = [pygame.image.load(path).convert_alpha() for path in animation_paths]
@@ -384,10 +387,21 @@ class pacman_graphic(pygame.sprite.Sprite):
                 raise Exception("UNKNOWN DIRECTION VALUE")
             self.moving_steps += step_len
         else:
+            hit_food_blocks = pygame.sprite.spritecollide(self, map_obj.food_blocks, True)
 
+            if len(hit_food_blocks) > 0:
+                self.score += SCORE_PER_FOOD
+                food_x, food_y = hit_food_blocks[0].rect.topleft
+                print("FOOD (x, y): ", food_x, food_y)
+
+                food_i, food_j = map_obj.to_cell_coord(food_x, food_y)
+                print("FOOD (i, j): ", food_i, food_j)
+                map_obj.grid_2d[food_i, food_j] = WALL
+        
             # Nếu đã di chuyển đến ô đích
             if self.moving_direction is not None:
                 self.score -= step_cost
+                self.path_length += PACMAN_STEP_COST
 
                 # Cập nhật vị trí pacman trên grid_2d
                 i, j = map_obj.to_cell_coord(cur_x, cur_y)
@@ -624,3 +638,55 @@ class wall_graphic(pygame.sprite.Sprite):
 
         self.rect = self.image.get_rect()
         self.rect.topleft = (x,y)
+
+if __name__ == "__main__":
+    
+    from readfile import *
+
+    pygame.init()
+
+    size, grid_2d, start = readfile("input/1/input9.txt")
+    size = np.array(size)
+    grid_2d = np.array(grid_2d)
+    start = np.array(start)
+    grid_2d, size, start = check_fence(grid_2d, size, start)
+
+    screen_width, screen_height = set_screen_size(grid_2d)
+    # print(total_screen_size(grid_2d))
+    screen = pygame.display.set_mode((screen_width, screen_height + BLOCK_SIZE))
+
+    # Set the current window caption
+    pygame.display.set_caption(WINDOW_TITLE)
+    
+    # Used to manage how fast the screen updates
+    clock = pygame.time.Clock()
+
+    #Loop until the user clicks the close button.
+    closed_window = False
+    start_y = BLOCK_SIZE
+
+    print(f"Block size: {BLOCK_SIZE}")
+    print(f"start_y: {start_y}")
+
+    pacman_i = start[0]
+    pacman_j = start[1]
+    print(f"pacman (i, j) = ({pacman_i}, {pacman_j})")
+
+    map_obj = map_graphic(screen, grid_2d, start_y, pacman_i=pacman_i, pacman_j=pacman_j)
+
+    # Game Loop -----------
+    done = False
+    while not done:
+
+        for event in pygame.event.get(): # User did something
+            if event.type == pygame.QUIT: # If user clicked close
+                done = True
+
+        map_obj.draw_map()
+
+        # Tăng/giảm frame speed ở đây
+        clock.tick(GAME_FPS)
+
+    print(map_obj)
+    print("SCORE: ", map_obj.pacman_block.score)
+    pygame.quit()

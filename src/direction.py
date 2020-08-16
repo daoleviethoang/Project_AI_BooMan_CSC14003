@@ -24,6 +24,8 @@ def coord_to_direction(path, start_x, start_y):
     output = []
     for t in path:
         i, j = t
+        if (i, j) == (cur_y, cur_x):
+            continue
         if i > cur_x:
             output.append(d)
         elif i < cur_x:
@@ -34,6 +36,7 @@ def coord_to_direction(path, start_x, start_y):
             elif j < cur_y:
                 output.append(l)
 
+
         cur_x = i
         cur_y = j
 
@@ -42,8 +45,9 @@ def coord_to_direction(path, start_x, start_y):
 
 if __name__ == "__main__":
     
-    path = [(0, 1), (0, 2), (0, 3), (1, 3), (1, 2)]
-    start_x = 0
-    start_y = 0
-
+    path = [(2, 8), (2, 9), (2, 10), (2, 11), (3, 11), \
+            (4, 11), (5, 11), (6, 11), (6, 12), (6, 13), (6, 14), (6, 15), (6, 16)]
+    start_x = 2
+    start_y = 8
+ 
     print(coord_to_direction(path, start_x, start_y))

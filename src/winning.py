@@ -100,10 +100,12 @@ def winning_screen(flag, score, time):
             pygame.draw.rect(screen, FONT_MENU_COLOR, stripe2)
 
             draw_Text("SCORE", font5, FONT_MENU_COLOR, screen, None, 150)
-                    
+
             draw_Text(str(i), font4, FONT_MENU_COLOR, screen, None, 230)
             if i != score:
-                i += 1
+                if int(score) > 0:
+                    i += 1
+                else: i -= 1
             else: draw_Text("Time: "+ str(time) +"s", font6, FONT_MENU_COLOR, screen, None, 290)
 
             outline = pygame.Rect((SCREEN_WIDTH - 602 )//2, 349, 602, 52)
@@ -122,7 +124,9 @@ def winning_screen(flag, score, time):
             draw_Text2("SCORE", font5, FONT_MENU_COLOR, screen, 180, 150)
             draw_Text2(str(i), font4, FONT_MENU_COLOR, screen, 180, 230)
             if i != score:
-                i += 1
+                if int(score) > 0:
+                    i += 1
+                else: i -= 1
             else: 
                 draw_Text2("Time: "+ str(time) +"s", font6, FONT_MENU_COLOR, screen, 180, 290)
 

@@ -75,6 +75,15 @@ def button2(text, x, y, width, height, inactive_color, active_color):
 
 def winning_screen(flag, score, time):
     i = 0
+
+    if flag == 2:
+        pygame.mixer.Channel(0).play(pygame.mixer.Sound('res/end3.ogg'))
+        pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/end1.ogg'), -1)
+    else:
+        pygame.mixer.Channel(0).play(pygame.mixer.Sound('res/end2.ogg'), -1)
+
+
+
     while True:
         screen.fill((0, 0, 0))
         screen.blit(image2, (0,0))      
@@ -125,9 +134,11 @@ def winning_screen(flag, score, time):
                     pygame.draw.rect(screen, BACKGROUND_COLOR, quote)
                     button2("Oh no.... Monster catched the pacman", (SCREEN_WIDTH - 500 )//2, 371, 500, 50, BACKGROUND_COLOR, BACKGROUND_COLOR)
                 elif flag == 2:
+
                     screen.blit(trophy, (575, 230))
 
                     draw_Text2("VICTORY", font8, FONT_MENU_COLOR, screen, 600, 180)
+
                     outline = pygame.Rect((SCREEN_WIDTH - 442 )//2, 370, 442, 52)
                     pygame.draw.rect(screen, FONT_MENU_COLOR, outline)
                     quote = pygame.Rect((SCREEN_WIDTH - 440 )//2, 371, 440, 50)
@@ -179,4 +190,4 @@ def winning_screen(flag, score, time):
         mainClock.tick(40)
         
 if __name__ == "__main__":
-    winning_screen(2, 40, 125)
+    winning_screen(1, 40, 125)

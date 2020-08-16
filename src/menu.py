@@ -67,8 +67,8 @@ click = False
 
 
 def Main_Menu():
-    pygame.mixer.music.load('res/start.mp3')
-    pygame.mixer.music.play(-1)  
+    pygame.mixer.Channel(0).play(pygame.mixer.Sound('res/start.ogg'), -1)
+
     while True:
         screen.fill((0, 0, 0))
         screen.blit(image, (0,0))      
@@ -85,19 +85,24 @@ def Main_Menu():
         try:
             if button_1.collidepoint((mx, my)):
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     choose_map('LEVEL1')
             
             if button_2.collidepoint((mx, my)):
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     choose_map('LEVEL2')
             if button_3.collidepoint((mx, my)):
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     choose_map('LEVEL3')
             if button_4.collidepoint((mx, my)):
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     choose_map('LEVEL4')
             if button_5.collidepoint((mx, my)):
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     pygame.quit()
                     sys.exit()  
         except NameError:
@@ -174,7 +179,11 @@ def choose_map(level):
             if rect_text[i].collidepoint((mx, my)):
                 text_inac("Map "+ str(i+1), rect_text[i], FONT_MAP_COLOR, FONT_MENU_COLOR)                
                 if click:
+                    pygame.mixer.Channel(1).play(pygame.mixer.Sound('res/click.ogg'))
                     load_game("input/" + str(level[5]) + "/input" + str(i+1) + ".txt" ,level)
+                    pygame.mixer.Channel(0).play(pygame.mixer.Sound('res/start.ogg'), -1)
+                    
+
                     
 
         click = False

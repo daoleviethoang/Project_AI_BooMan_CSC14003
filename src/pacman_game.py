@@ -506,9 +506,11 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
         nrow, _ = map_obj.grid_2d.shape
         path, _, _ = pacman.Graph_Search_A_Star(food_x, food_y)
         # Quyết định chọn đi hay không:
-        if not FORCE_TO_MOVE:
-            should_go = len(path) - 1 <= SCORE_PER_FOOD
-        
+        if not FORCE_TO_MOVE:  
+            if len(path) - 1 <= SCORE_PER_FOOD:
+                should_go = True
+            if len(path) == 0:
+                should_go = False        
         pacman_moves = coord_to_direction(cell_to_coord(path, nrow), pacman_i, pacman_j)
     else: 
         path = []

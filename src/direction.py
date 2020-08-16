@@ -2,15 +2,21 @@ import numpy as np
 
 from enum import Enum
 class Direction(Enum):
-    LEFT = "l"
-    RIGHT = "r"
-    UP = "u"
-    DOWN = "d"
+    LEFT = 1
+    RIGHT = 2
+    UP = 3
+    DOWN = 4
+    NO_MOVE = 5
 
 def cell_to_coord(path, nrow):
     # (i, j)
     return [(cell % nrow, cell // nrow) for cell in path]
 
+''''
+@warning
+start_x: dòng
+start_y: cột
+'''
 def coord_to_direction(path, start_x, start_y):
     # Các hướng đi
     u = Direction.UP.value

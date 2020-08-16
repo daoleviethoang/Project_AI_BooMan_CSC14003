@@ -72,20 +72,20 @@ def set_screen_size(grid_2d):
         # max_width, max_height = display_info.current_w, display_info.current_h
         nrow, ncol = grid_2d.shape
         print(f"{nrow} x {ncol}")
-        root = tk.Tk()
-        max_width = root.winfo_screenwidth()
-        max_height = root.winfo_screenheight()
+        # root = tk.Tk()
+        # max_width = root.winfo_screenwidth()
+        # max_height = root.winfo_screenheight()
 
-        print(f"MAX WIDTH, MAX HEIGHT: ({max_width} {max_height})")
-        expected_height = int(max_height * 0.8)
-        BLOCK_SIZE = expected_height // nrow
+        # print(f"MAX WIDTH, MAX HEIGHT: ({max_width} {max_height})")
+        # expected_height = int(max_height * 0.8)
+        # BLOCK_SIZE = expected_height // nrow
 
         if nrow <= 20:
             BLOCK_SIZE = 30
-        # elif nrow <= 40:
-        #     BLOCK_SIZE = 20
-        # else:
-        #     BLOCK_SIZE = 10
+        elif nrow <= 40:
+            BLOCK_SIZE = 20
+        else:
+            BLOCK_SIZE = 10
 
         screen_width, screen_height = map_graphic.total_screen_size(grid_2d, BLOCK_SIZE)
         print(f"MAP WIDTH, MAP HEIGHT: ({screen_width} {screen_height})")
@@ -314,6 +314,9 @@ class pacman_graphic(pygame.sprite.Sprite):
 
         # position
         self.rect.topleft = (init_x, init_y)
+        self.start_x, self.start_y = init_x, init_y
+        self.prev_i = -1
+        self.prev_j = -1
 
         self.score = 0
         self.path_length = 0
@@ -334,9 +337,9 @@ class pacman_graphic(pygame.sprite.Sprite):
         self.up_animation = character_animation(up_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)
         self.down_animation = character_animation(down_flipped, height=BLOCK_SIZE, width=BLOCK_SIZE)
 
-        self.prev_i = -1
-        self.prev_j = -1
-
+    def current_pos(self, map_obj: map_graphic):
+        x, y = self.rect.topleft
+        return map_obj.to_cell_coord(x, y)
 
     def is_moving(self)->bool:
         return self.moving_direction is not None
@@ -408,7 +411,10 @@ class pacman_graphic(pygame.sprite.Sprite):
                 map_obj.grid_2d[i, j] = PACMAN
                 if self.prev_i != -1 and self.prev_j != -1:
                     map_obj.grid_2d[self.prev_i, self.prev_j] = ROAD
-                self.prev_i, self.prev_j = i, j
+                else:
+                    start_i, start_j = map_obj.to_cell_coord(self.start_x, self.start_y)
+                    map_obj.grid_2d[start_i, start_j] = ROAD
+                    self.prev_i, self.prev_j = i, j
 
                 nrow = map_obj.grid_2d.shape[0]
                 print(f"PACMAN POS: coord ({i}, {j})\t | cell {i + j * nrow}")
@@ -497,6 +503,8 @@ class ghost_graphic(pygame.sprite.Sprite):
         self.prev_i = -1
         self.prev_j = -1
 
+        self.root_x, self.root_y = x, y
+
     def is_moving(self)->bool:
         return self.moving_direction is not None
 
@@ -536,9 +544,12 @@ class ghost_graphic(pygame.sprite.Sprite):
                 i, j = map_obj.to_cell_coord(cur_x, cur_y)
                 map_obj.ghost_map[i, j] = GHOST
                 if self.prev_i != -1 and self.prev_j != -1:
-                    map_obj.ghost_map[self.prev_i, self.prev_j] = ROAD
-                self.prev_i, self.prev_j = i, j
-                # print("GHOST POS: ", i, j)
+                    map_obj.ghost_map[self.prev_i, self.prev_j]
+                else:
+                    self.prev_i, self.prev_j = i, j
+                    start_i, start_j = map_obj.to_cell_coord(self.root_x, self.root_y)
+                    map_obj.ghost_map[start_i, start_j] = ROAD
+
 
             self.moving_steps = 0
             self.moving_direction = None
@@ -607,6 +618,22 @@ class ghost_graphic(pygame.sprite.Sprite):
         # print("GHOST move to ", move)
         return move
 
+    """
+    Trả về Direction random khi mà ghost đang ở tại vị trí (self.root_x, self.root_y) hoặc Direction về lại (self.root_i, self.root_j)
+    """
+    def random_moves_around_root(self,  map_obj: map_graphic)->Direction:
+        x, y = self.rect.topleft
+        i, j = map_obj.to_cell_coord(x, y)
+
+        if (x, y) == (self.root_x, self.root_y):
+            move = self.random_moves(map_obj)
+        else:
+            root_i, root_j = map_obj.to_cell_coord(self.root_x, self.root_y)
+            path = [(i, j), (root_i, root_j)]
+            move = coord_to_direction(path, i, j)[0]
+
+        return move
+
 import math
 class food_graphic(pygame.sprite.Sprite):
     def __init__(self, x, y, height, width, colorkey=FOOD_COLOR):
@@ -645,7 +672,7 @@ if __name__ == "__main__":
 
     pygame.init()
 
-    size, grid_2d, start = readfile("input/1/input9.txt")
+    size, grid_2d, start = readfile("input/3/map5.txt")
     size = np.array(size)
     grid_2d = np.array(grid_2d)
     start = np.array(start)

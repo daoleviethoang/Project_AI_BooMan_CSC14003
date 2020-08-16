@@ -15,7 +15,7 @@ class Pacman:
         self.map_obj = map_obj
         self.map_nrow = map_obj.grid_2d.shape[0]
         self.map_ncol = map_obj.grid_2d.shape[1]
-
+        self.saveghost = []
         self.grid_pos = pos # tính theo i, j
         self.road = self.map_obj.grid_2d.copy()
         # self.vision = []
@@ -382,7 +382,7 @@ class Pacman:
             list2 = [e for e in set_path_limit if e]
             if len(list2) > 1:
                 list_path = sorted(list2, key = len)
-                return list2[0]
+                return list_path[0]
             else:
                 print('end game')
                 return []
@@ -391,7 +391,6 @@ class Pacman:
             #path_return,explored,timeEscape = self.Breadth_First_Search(data_level3, start, goal)
             return path_return
         else:
-
             for i in data_food:
                 path_return,explored,timeEscape = self.Breadth_First_Search(data_level3, start, i)
                 Y.append(path_return)
@@ -412,6 +411,7 @@ class Pacman:
             path_temp.pop(0)
         else:
             return Direction.NO_MOVE.value # 5
+
         for i in path_temp:
             S_x = int(i // 7) - 3
             S_y = int(i % 7) - 3
@@ -557,11 +557,12 @@ def run_game1(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     if not init_yet:
         pygame.quit()
 
-def level3(map_obj: map_graphic, pacman: Pacman):
+def level3(map_obj: map_graphic, pacman: Pacman, store_direction):
 
     if map_obj.game_over[0]:
         return
     
+
     # Pacman ---------------------------
     has_move = False
     if not map_obj.pacman_block.is_moving():
@@ -570,6 +571,7 @@ def level3(map_obj: map_graphic, pacman: Pacman):
 
         pacman.update_pos(vec(cur_j, cur_i))
         direction = pacman.level_3()
+        store_direction.append(direction)
         if direction != Direction.NO_MOVE.value:
             map_obj.pacman_block.turn(direction)
             has_move = True
@@ -594,6 +596,20 @@ def level3(map_obj: map_graphic, pacman: Pacman):
            ghost.turn(ghost.random_moves_around_root(map_obj))
 
     map_obj.ghost_blocks.update(map_obj)
+
+def check_repeat(store):
+    repeat = 0
+    if len(store) > 8:
+        for i in range(len(store)-4):
+            if store[i] != store[i+1]:
+                if (store[i], store[i+1]) == (store[i+2], store[i+3]):
+                    repeat += 1
+                else: repeat = 0
+        if repeat == 6:
+            return True
+        else: return False
+    else: return False
+
 
 def run_game3(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     # Initialize all imported pygame modules
@@ -629,6 +645,8 @@ def run_game3(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
     first_move = pacman.level_3()
     should_go = first_move != Direction.NO_MOVE.value
 
+    store_direction = []
+
     while not done:
 
         for event in pygame.event.get(): # User did something
@@ -636,10 +654,13 @@ def run_game3(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
                 done = True
 
         if should_go:
-            level3(map_obj, pacman)
+            level3(map_obj, pacman, store_direction)
+        
+        if check_repeat(store_direction):
+            map_obj.game_over = True, 0
 
         map_obj.draw_map()
-
+        
         if map_obj.game_over[0] or not should_go:
             if not should_go:
                 map_obj.game_over = True, 0
@@ -666,9 +687,10 @@ def run_game3(grid_2d: np.ndarray, pacman_i, pacman_j, init_yet=False):
 
     
 from readfile import *
-def test():
-    
-    size, grid_2d, start = readfile('input/1/input17.txt')
+
+def test(level,path):
+    main(level, path)
+    size, grid_2d, start = readfile('input/3/input1.txt')
     size = np.array(size)
     grid_2d = np.array(grid_2d)
     start = np.array(start)
@@ -706,6 +728,6 @@ if __name__ == '__main__':
     # main()
     argv = sys.argv
     if len(argv) <= 1:
-        test()
+        test(level = 3, path = "input/3/input1.txt")
     else:
         main(argv[1], argv[2])
